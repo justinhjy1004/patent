@@ -1,0 +1,10 @@
+--------
+/home/jho/Jupyter/Patent/node2vec/node2vec.Err
+Thu Jul  8 09:08:08 2021
+Execution stopped: IsInt(false, 0, 0, Val) [Reason:'coinventor1'], file ../../glib-core/dt.h, line 581
+--------
+--------
+/home/jho/Jupyter/Patent/node2vec/node2vec.Err
+Thu Jul  8 09:09:56 2021
+Execution stopped: IsInt(false, 0, 0, Val) [Reason:'coinventor1'], file ../../glib-core/dt.h, line 581
+--------
