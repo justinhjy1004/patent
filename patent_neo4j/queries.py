@@ -111,3 +111,43 @@ def related_inventors(tx,inventor,max_depth=3):
     response = tx.run(query_string % range_hops, inventor=inventor)
     result_df = pd.DataFrame([dict(_) for _ in response])
     return result_df
+
+# Given root of the tree, retrieve the inventors of each
+def inventor_tree(tx,root,max_depth=3):
+    root = str(root)
+    
+    # Descendents of root node
+    query_string = """
+                    MATCH r=(n:Patent)-[:CITED*%s]->(c:Patent)
+                    WHERE c.id = $root
+                    MATCH (n)-[:INVENTED_BY]->(i:Inventor)
+                    RETURN n.id AS patent,
+                    i.id AS inventor
+                   """
+    range_hops = "1.." + str(max_depth)
+    response= tx.run(query_string % range_hops, root=root)
+    result_df = pd.DataFrame([dict(_) for _ in response])
+    
+    # Root node itself
+    root_string = """
+                    MATCH (c:Patent)
+                    WHERE c.id = $root
+                    MATCH (c)-[:INVENTED_BY]->(i:Inventor)
+                    RETURN c.id AS patent,
+                    i.id AS inventor
+                   """
+    response= tx.run(root_string, root=root)
+    root_df = pd.DataFrame([dict(_) for _ in response])
+    
+    # Concatenating Data
+    frames = [result_df, root_df]
+    result_df = pd.concat(frames)
+    
+    
+    # Changing into list format
+    result_df = result_df.groupby("patent").agg({"inventor": lambda x: (','.join(x)).split(",")}).reset_index()
+    
+    # Remove Duplicates
+    result_df["inventor"] = result_df["inventor"].apply(lambda x: list(set(x)))
+    
+    return result_df

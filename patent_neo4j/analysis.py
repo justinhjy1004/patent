@@ -6,6 +6,7 @@ Contains routine functions for analysis of patent data
 
 import numpy as np
 import pandas as pd
+import itertools
 from scipy import spatial
 
 """
@@ -86,7 +87,44 @@ def related_inventors_sp(inventor,related_inventors):
         
         new_row = {'inventor': inventor, 'related': i, 'hops': min_hops}
         shortest_path = shortest_path.append(new_row, ignore_index=True)
-
             
     return shortest_path
+
+'''
+Given citation tree, returns direct ancestor relationship
+Input:
+    citation_tree
+Output:
+    direct_ancestor - with similarity scores
+'''
+def get_direct_ancestor(citation_tree):
+    # takes first element in list
+    citation_tree['lineage'] = citation_tree['lineage'].apply(lambda x: x[0])
+    citation_tree['similarity'] = citation_tree['similarity'].apply(lambda x: x[0])
+    
+    direct_ancestor = citation_tree[["id", "lineage", "similarity"]]
+    
+    return direct_ancestor
+
+'''
+Given direct ancestor and list of patent inventors, generate pairwise combination
+of inventors between the two patents
+Input:
+    direct_ancestor
+    inventor_tree
+Output:
+    direct_ancestor - with combination
+'''
+def interpatent_inventor_combination(direct_ancestor, inventor_tree):
+    combination = []
+    
+    # Generate combination of inventors
+    for index,row in direct_ancestor.iterrows():
+        citing = inventor_tree[inventor_tree['patent'] == row.id]['inventor'].tolist()[0]
+        cited = inventor_tree[inventor_tree['patent'] == row.lineage]['inventor'].tolist()[0]
+        combination.append(itertools.combinations(citing + cited, 2))
+        
+    direct_ancestor['combination'] = combination
+    
+    return direct_ancestor
     

@@ -1,4 +1,7 @@
 import pandas as pd
+import os
+import json
+
 """
 Takes a dataframe that contains a list that traces lineage and converts to
 direct descendent alongside with similarity
@@ -33,9 +36,11 @@ Output:
     coinventor_map - mapping for inventor id to integers
     
 Optional:
-    Set write == True, then writes a space separated file that is compatible 
+    Set write == True, then writes a space separated file that is compatible
+    Also, with a json file that can be natively loaded into a Python Dict for the 
+    mapping
 """
-def inventor_to_int(coinventors, write=False, file="file.csv"):
+def inventor_to_int(coinventors, write=False, file="file", mapping="mapping"):
     # Combines two rows of the edge list
     coinventor_list = coinventors['coinventor1'].tolist() + coinventors['coinventor2'].tolist()
     # Remove Duplicates
@@ -56,6 +61,8 @@ def inventor_to_int(coinventors, write=False, file="file.csv"):
     # OPTIONAL: writes to compatible format
     if write:
         coinventors.to_csv(file, header=False, index=False, sep=' ')
+        with open(mapping, 'w+') as fp:
+            json.dump(coinventor_map, fp, sort_keys=True, indent=4)
     
     output = (coinventors, coinventor_map)
         

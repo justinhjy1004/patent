@@ -5,6 +5,7 @@ from patent_neo4j.queries import patent_info
 from patent_neo4j.queries import relating_coinventors
 from patent_neo4j.queries import coinventors
 from patent_neo4j.queries import related_inventors
+from patent_neo4j.queries import inventor_tree
 
 """
 Neo4j Connection for Patent Graph Data
@@ -55,10 +56,15 @@ class Neo4jConnection:
     # Query for coinventors relationship from a citation tree
     def query_coinventors(self, root, coinventors=coinventors, max_depth=3):
         with self.driver.session() as session:
-            result = result = session.read_transaction(coinventors, root, max_depth)
+            result = session.read_transaction(coinventors, root, max_depth)
         return result
     
     def query_related_inventors(self, inventors, related_inventors=related_inventors, max_depth=3):
         with self.driver.session() as session:
-            result = result = session.read_transaction(related_inventors, inventors, max_depth)
+            result = session.read_transaction(related_inventors, inventors, max_depth)
+        return result
+    
+    def query_inventor_tree(self, root, inventor_tree=inventor_tree, max_depth=3):
+        with self.driver.session() as session:
+            result = session.read_transaction(inventor_tree, root,  max_depth)
         return result
