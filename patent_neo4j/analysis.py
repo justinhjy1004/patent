@@ -50,7 +50,10 @@ def similarity_score(coinventor_mapping, node_emb, inventor1, inventor2, measure
     # Check if both inventors are part of the dictionary
     keys = list(coinventor_mapping.keys())
     if inventor1 not in keys or inventor2 not in keys:
-        return None
+        if inventor1 == inventor2:
+            return 1
+        else:
+            return None
     
     # Obtain index of inventor
     emb1 = coinventor_mapping[inventor1]
@@ -99,10 +102,11 @@ Output:
 '''
 def get_direct_ancestor(citation_tree):
     # takes first element in list
+    citation_tree['hops'] = citation_tree['lineage'].apply(lambda x: len(x))
     citation_tree['lineage'] = citation_tree['lineage'].apply(lambda x: x[0])
     citation_tree['similarity'] = citation_tree['similarity'].apply(lambda x: x[0])
     
-    direct_ancestor = citation_tree[["id", "lineage", "similarity"]]
+    direct_ancestor = citation_tree[["id", "lineage", "similarity", "hops"]]
     
     return direct_ancestor
 
@@ -122,9 +126,9 @@ def interpatent_inventor_combination(direct_ancestor, inventor_tree):
     for index,row in direct_ancestor.iterrows():
         citing = inventor_tree[inventor_tree['patent'] == row.id]['inventor'].tolist()[0]
         cited = inventor_tree[inventor_tree['patent'] == row.lineage]['inventor'].tolist()[0]
-        combination.append(itertools.combinations(citing + cited, 2))
+        combination.append([x for x in itertools.combinations(citing + cited, 2)])
         
-    direct_ancestor['combination'] = combination
+    direct_ancestor = direct_ancestor.assign(combination = combination)
     
     return direct_ancestor
     
