@@ -6,6 +6,7 @@ from patent_neo4j.queries import relating_coinventors
 from patent_neo4j.queries import coinventors
 from patent_neo4j.queries import related_inventors
 from patent_neo4j.queries import inventor_tree
+from patent_neo4j.queries import nber_category
 
 """
 Neo4j Connection for Patent Graph Data
@@ -38,8 +39,7 @@ class Neo4jConnection:
     def query_citation_tree(self, root, citation_tree=citation_tree, max_depth=3):
         with self.driver.session() as session:
             result = session.read_transaction(citation_tree, root, max_depth)
-        return(result)
-        return df    
+        return result    
     
     # Obtain Direct Information from Single Patent
     def query_patent_info(self, root, patent_info=patent_info):
@@ -67,4 +67,9 @@ class Neo4jConnection:
     def query_inventor_tree(self, root, inventor_tree=inventor_tree, max_depth=3):
         with self.driver.session() as session:
             result = session.read_transaction(inventor_tree, root,  max_depth)
+        return result
+    
+    def query_nber_category(self, root, nber_category=nber_category, max_depth=3):
+        with self.driver.session() as session:
+            result = session.read_transaction(nber_category, root,  max_depth)
         return result

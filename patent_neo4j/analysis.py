@@ -131,4 +131,3 @@ def interpatent_inventor_combination(direct_ancestor, inventor_tree):
     direct_ancestor = direct_ancestor.assign(combination = combination)
     
     return direct_ancestor
-    

@@ -29,7 +29,7 @@ def direct_citation(tx, root):
 def citation_tree(tx, root, max_depth=3):
     root = str(root)
     query_string = """
-                    MATCH p=(n:Patent)-[CITED*%s]->(c:Patent)
+                    MATCH p=(n:Patent)-[:CITED*%s]->(c:Patent)
                     WHERE c.id = $root 
                     RETURN n.id AS id,
                     n.date AS date,
@@ -73,7 +73,7 @@ def patent_info(tx, root):
 def relating_coinventors(tx, root, max_depth=3):
     root = str(root)
     query_string = """
-                    MATCH r=(n:Patent)-[CITED*%s]->(c:Patent)
+                    MATCH r=(n:Patent)-[:CITED*%s]->(c:Patent)
                     WHERE c.id = $root
                     MATCH (i1:Inventor)<-[:INVENTED_BY]-(n)-[:INVENTED_BY]->(i2:Inventor)
                     MERGE (i1)-[:CO_INVENTOR]-(i2)
@@ -85,7 +85,7 @@ def relating_coinventors(tx, root, max_depth=3):
 def coinventors(tx,root,max_depth=3):
     root = str(root)
     query_string = """
-                    MATCH (n:Patent)-[CITED*%s]->(c:Patent)
+                    MATCH (n:Patent)-[:CITED*%s]->(c:Patent)
                     WHERE c.id = $root
                     MATCH (i1:Inventor)<-[:INVENTED_BY]-(n)-[:INVENTED_BY]->(i2:Inventor)
                     MATCH (i1)-[:CO_INVENTOR]-(i2)
@@ -101,7 +101,7 @@ def coinventors(tx,root,max_depth=3):
 def related_inventors(tx,inventor,max_depth=3):
     inventor = str(inventor)
     query_string = """
-                    MATCH r=(i:Inventor)-[CO_INVENTOR*%s]-(j:Inventor)
+                    MATCH r=(i:Inventor)-[:CO_INVENTOR*%s]-(j:Inventor)
                     WHERE i.id = $inventor
                     RETURN i.id as inventor,
                     j.id as related,
@@ -149,5 +149,29 @@ def inventor_tree(tx,root,max_depth=3):
     
     # Remove Duplicates
     result_df["inventor"] = result_df["inventor"].apply(lambda x: list(set(x)))
+    
+    return result_df
+
+# Returns NBER category, subcategory and lineage given root and max depth 
+def nber_category(tx,root,max_depth=3):
+    root = str(root)
+    
+    query_string = """
+                    MATCH p=(n:Patent)-[:CITED*%s]->(c:Patent)
+                    WHERE c.id = $root 
+                    RETURN n.id AS id,
+                    n.category AS category,
+                    n.subcategory AS subcategory,
+                    c.category AS root_category,
+                    c.subcategory AS root_subcategory,
+                    n.date AS date,
+                    [rel in relationships(p) | endNode(rel).id] as lineage
+                   """
+    range_hops = "1.." + str(max_depth)
+    response= tx.run(query_string % range_hops, root=root)
+    result_df = pd.DataFrame([dict(_) for _ in response])
+    
+    result_df['direct'] = result_df['lineage'].apply(lambda x: x[0])
+    result_df['generation'] = result_df['lineage'].apply(lambda x: len(x))
     
     return result_df
