@@ -160,18 +160,12 @@ def nber_category(tx,root,max_depth=3):
                     MATCH p=(n:Patent)-[:CITED*%s]->(c:Patent)
                     WHERE c.id = $root 
                     RETURN n.id AS id,
-                    n.category AS category,
-                    n.subcategory AS subcategory,
-                    c.category AS root_category,
-                    c.subcategory AS root_subcategory,
-                    n.date AS date,
-                    [rel in relationships(p) | endNode(rel).id] as lineage
+                    n.subcategory AS nber,
+                    [rel in relationships(p) | endNode(rel).id] as lineage,
+                    [rel in relationships(p) | endNode(rel).subcategory] as nber_lineage
                    """
     range_hops = "1.." + str(max_depth)
     response= tx.run(query_string % range_hops, root=root)
     result_df = pd.DataFrame([dict(_) for _ in response])
-    
-    result_df['direct'] = result_df['lineage'].apply(lambda x: x[0])
-    result_df['generation'] = result_df['lineage'].apply(lambda x: len(x))
     
     return result_df

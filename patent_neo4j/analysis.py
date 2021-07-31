@@ -8,6 +8,17 @@ import numpy as np
 import pandas as pd
 import itertools
 from scipy import spatial
+from scipy.spatial.distance import jensenshannon
+
+# NBER categories
+nber_categories = pd.read_csv("Data/nber_subcategory.csv")
+nber_categories = nber_categories['id'].to_numpy()
+NUM_MAIN_NBER = 7
+
+# Suppress SettingWithCopyWarning because it is annoying and I don't know how to fix it!!!
+# If you do, please help!
+pd.set_option('mode.chained_assignment', None)
+
 
 """
 Takes a path to the file (in the format of the node2vec output)
@@ -131,3 +142,128 @@ def interpatent_inventor_combination(direct_ancestor, inventor_tree):
     direct_ancestor = direct_ancestor.assign(combination = combination)
     
     return direct_ancestor
+
+'''
+Given NBER category dataframe, fills in missing values based on majority vote of direct
+ancestor
+Input:
+    nber - dataframe containing nber information
+Output:
+    counts - dataframe with assigned nber
+'''
+
+def assign_missing_nber(nber,max_depth=3):
+    # Locate Missing NBER assignments
+    nones = nber.loc[nber['nber'].isna(),:]
+
+    # Take non-missing NBER assignments
+    nber2 = nber.loc[nber['nber'].notnull(),:]
+    # Caluclate hops based on lineage
+    nber2.loc[:,'hops'] = nber2.loc[:,'nber_lineage'].apply(lambda x: len(x))
+    # Subset relevant columns
+    nber2 = nber2.loc[:, ('id','nber','hops')]
+    # Drop duplicates
+    nber2 = nber2.drop_duplicates(subset=['id'])
+
+    # If missing Assignments Exist
+    if nones.shape[0] != 0:
+        # Calculate hops
+        nones['hops'] = nones.loc[:,'nber_lineage'].apply(lambda x: len(x))
+
+        # Obtain NBER from direct ancestors 
+        nones.loc[:,'nber'] = nones.loc[:,'nber_lineage'].apply(lambda x: x[0])
+        for i in range(1,max_depth): # if remains None, repeat until root (which should have NBER assignment)
+            nones.loc[nones['nber'].isna(),'nber'] = nones.loc[nones['nber'].isna(),'nber_lineage'].apply(lambda x:x[i])
+
+        # Majority Voting Mechanism - count which is the most common
+        counts = nones.groupby(['id', 'nber', 'hops']).size().reset_index(name='counts')
+        # Sort counts
+        counts = counts.sort_values('counts')
+        # Keep Last (Largest Count/Vote)
+        counts = counts.drop_duplicates(['id'], keep = 'last')
+        # Subset Relevant Columns
+        counts = counts[['id','nber','hops']]
+        # Drop duplicates
+        counts = counts.drop_duplicates(subset=['id'])
+        # Concatenate with nber2
+        nber2 = pd.concat([nber2,counts])
+
+    return nber2
+
+'''
+Calculate Discrete Probability Distributions of NBER subcategories
+Input:
+    nber - dataframe with NBER data
+Output:
+    distribution - tuple with matrix representation of distribution of
+                   main and sub categories for NBER
+'''
+def nber_distribution(nber):
+    # Count sub category NBER distribution
+    nber_sub_dist = nber.groupby(['nber', 'hops']).size().reset_index(name='counts')
+    
+    # Count main category NBER distribution
+    nber_main = nber.copy()
+    nber_main['main_nber'] = nber_main["nber"].apply(lambda x: int(int(x)/10))
+    nber_main = nber_main.groupby(['main_nber','hops']).size().reset_index(name='counts')
+    
+    sub_distribution = []
+    
+    # Calculate distribution based on hops
+    for i in range(nber_sub_dist['hops'].max()):
+        sub_distribution.append([])
+        
+        # Select hop for NBER distribution
+        hop = nber_sub_dist[nber_sub_dist['hops'] == i + 1]
+        hop_count = hop['counts'].sum()
+        
+        # Assign probability of each NBER subcategory
+        for j in range(len(nber_categories)):
+            nber_count = hop.loc[hop['nber'] == str(nber_categories[j]), 'counts']
+            if len(nber_count) != 0:
+                sub_distribution[i].append(float(nber_count)/hop_count)
+            else:
+                sub_distribution[i].append(0)
+                
+    main_dist = []
+
+    for i in range(nber_main['hops'].max()):
+        main_dist.append([])
+
+        hop = nber_main.loc[nber_main['hops'] == i+1]
+        hop_count = hop['counts'].sum()
+
+        for j in range(NUM_MAIN_NBER):
+            nber_count = hop.loc[hop['main_nber'] == j+1, 'counts']
+            if len(nber_count) != 0:
+                main_dist[i].append(float(nber_count/hop_count))
+            else:
+                main_dist[i].append(0)
+                
+    return (main_dist, sub_distribution)
+
+'''
+Calculate Janson-Shannon Divergence between combinations
+Input:
+    distribution - discrete probability distribution matrix of hops
+Ouput
+    js_div - map values for Janson-Shannon Divergence
+'''
+def js_divergence(distribution):
+    combination = [x for x in range(len(distribution[0]))]
+    combination = itertools.combinations(combination, 2)
+    
+    main_div_map = {}
+    # Calculate Janson-Shannon Divergence for hops
+    for c in combination:
+        main_div_map[c] = jensenshannon(distribution[0][c[0]],distribution[0][c[1]])
+    
+    combination = [x for x in range(len(distribution[1]))]
+    combination = itertools.combinations(combination, 2)
+    
+    sub_div_map = {}
+    # Calculate Janson-Shannon Divergence for hops
+    for c in combination:
+        sub_div_map[c] = jensenshannon(distribution[1][c[0]],distribution[1][c[1]])
+        
+    return (main_div_map, sub_div_map)

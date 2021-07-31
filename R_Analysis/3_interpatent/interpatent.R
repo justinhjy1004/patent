@@ -53,6 +53,9 @@ df["lmod_residuals"] <- lmod$residuals
 lmod5 <- lm(lmod_residuals ~ combination, df)
 summary(lmod5)
 
+lmod6 <- lm(inventor_sim ~ hops, df)
+summary(lmod6)
+
 ggplot(data = df, aes(x=similarity, y=combination, color=hops)) + 
   geom_point(size=0.1) + 
   geom_smooth(col='red') + 
