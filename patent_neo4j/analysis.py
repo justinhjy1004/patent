@@ -9,6 +9,7 @@ import pandas as pd
 import itertools
 from scipy import spatial
 from scipy.spatial.distance import jensenshannon
+from geopy.distance import great_circle
 
 # NBER categories
 nber_categories = pd.read_csv("Data/nber_subcategory.csv")
@@ -267,3 +268,36 @@ def js_divergence(distribution):
         sub_div_map[c] = jensenshannon(distribution[1][c[0]],distribution[1][c[1]])
         
     return (main_div_map, sub_div_map)
+
+'''
+Given Dataframe of citation tree with location information
+calculate the distance 
+Input:
+    geo -  dataframe containing lat,long information
+Output:
+    geo - adding distance from direct ancestor
+'''
+def geo_distance(geo):
+    # Convert lat,long into numeric and drop NA
+    geo['latitude'] = pd.to_numeric(geo['latitude'])
+    geo['longitude'] = pd.to_numeric(geo['longitude'])
+    geo = geo.dropna()
+    
+    # Get direct ancestor
+    geo['lineage'] = geo['lineage'].apply(lambda x: x[0])
+    
+    # Obtain unique location for merge
+    geo_unq = geo.copy()
+    geo_unq = geo_unq[['id','latitude','longitude']]
+    geo_unq = geo_unq.drop_duplicates()
+    
+    # Merge to direct ancestor
+    geo_unq = geo_unq.rename(columns={"id":"lineage", "latitude":"lineage_lat", "longitude":"lineage_long"})
+    geo = geo.merge(geo_unq, on = 'lineage', how = 'left')
+    geo = geo.dropna()
+    
+    # Calculate distance
+    geo.loc[:,'distance'] = geo.loc[:,['latitude', 'longitude','lineage_lat','lineage_long']].apply(
+                        lambda x: great_circle((x[0],x[1]),(x[2],x[3])).miles, axis=1)
+    
+    return geo

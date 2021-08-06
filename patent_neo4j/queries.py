@@ -169,3 +169,40 @@ def nber_category(tx,root,max_depth=3):
     result_df = pd.DataFrame([dict(_) for _ in response])
     
     return result_df
+
+# Returns geocoordinates of patent origin
+def geo_coordinate(tx,root,max_depth=3):
+    root = str(root)
+    
+    query_string = """
+                    MATCH p=(n:Patent)-[:CITED*%s]->(c:Patent)
+                    WHERE  c.id = $root
+                    MATCH (n)-[:LOCATED_IN]->(l:Location)
+                    RETURN n.id AS id,
+                    l.latitude AS latitude,
+                    l.longitude AS longitude,
+                    l.country AS country,
+                    [r in relationships(p) | endnode(r).id] as lineage
+                    """
+    range_hops = "1.." + str(max_depth)
+    response = tx.run(query_string % range_hops, root=root)
+    result_df = pd.DataFrame([dict(_) for _ in response])
+    
+    root_query = """
+                  MATCH (c:Patent)
+                  WHERE c.id = $root
+                  MATCH (c)-[:LOCATED_IN]->(l:Location)
+                  RETURN l.latitude AS latitude,
+                  l.longitude AS longitude,
+                  l.country AS country
+                 """
+    response = tx.run(root_query, root=root)
+    response = pd.DataFrame([dict(_) for _ in response])
+    print(response)
+    result_df = result_df.append({'id': root, 
+                                  'latitude':response.loc[0,'latitude'],
+                                  'longitude':response.loc[0,'longitude'],
+                                  'country': response.loc[0,'country'],
+                                  'lineage': [None]}, ignore_index=True)
+    
+    return result_df

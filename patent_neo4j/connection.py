@@ -7,6 +7,7 @@ from patent_neo4j.queries import coinventors
 from patent_neo4j.queries import related_inventors
 from patent_neo4j.queries import inventor_tree
 from patent_neo4j.queries import nber_category
+from patent_neo4j.queries import geo_coordinate
 
 """
 Neo4j Connection for Patent Graph Data
@@ -72,4 +73,9 @@ class Neo4jConnection:
     def query_nber_category(self, root, nber_category=nber_category, max_depth=3):
         with self.driver.session() as session:
             result = session.read_transaction(nber_category, root,  max_depth)
+        return result
+    
+    def query_geo_coordinate(self, root, geo_coordinate=geo_coordinate, max_depth=3):
+        with self.driver.session() as session:
+            result = session.read_transaction(geo_coordinate, root,  max_depth)
         return result
