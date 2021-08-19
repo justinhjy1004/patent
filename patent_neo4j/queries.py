@@ -30,12 +30,18 @@ def citation_tree(tx, root, max_depth=3):
     root = str(root)
     query_string = """
                     MATCH p=(n:Patent)-[:CITED*%s]->(c:Patent)
-                    WHERE c.id = $root 
+                    WHERE c.id = $root
+                    MATCH (n:Patent)-[:ASSIGNED_TO]->(a:Assignee)
+                    MATCH (n:Patent)-[:LOCATED_IN]->(l:Location)
+                    MATCH (n:Patent)-[:INVENTED_BY]->(i:Inventor)
                     RETURN n.id AS id,
                     n.date AS date,
                     n.country AS country,
                     n.num_claims AS claims,
                     n.kind AS kind,
+                    a.id AS assignee,
+                    l.id AS location,
+                    i.id AS inventor,
                     [rel in relationships(p) | endNode(rel).id] as lineage,
                     [rel in relationships(p) | rel.sim] as similarity
                    """
@@ -88,9 +94,8 @@ def coinventors(tx,root,max_depth=3):
                     MATCH (n:Patent)-[:CITED*%s]->(c:Patent)
                     WHERE c.id = $root
                     MATCH (i1:Inventor)<-[:INVENTED_BY]-(n)-[:INVENTED_BY]->(i2:Inventor)
-                    MATCH (i1)-[:CO_INVENTOR]-(i2)
-                    RETURN i1.id AS coinventor1,
-                    i2.id AS coinventor2
+                    RETURN i1.id AS inventor1,
+                    i2.id AS inventor2
                    """
     range_hops = '1..' + str(max_depth)
     response = tx.run(query_string % range_hops, root=root)
