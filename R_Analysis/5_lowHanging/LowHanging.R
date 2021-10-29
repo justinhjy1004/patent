@@ -2,59 +2,20 @@ library(tidyverse)
 
 df <- read_csv("sample_patents_stats.csv")
 
-# General description of the data
-lmod <- lm(log(edge_density)~log(unq_assignees), df)
-summary(lmod)
+df <- df %>%
+  mutate(theoretical_max = num_edge/(0.5*num_patents*(num_patents+1)))
 
-lmod <- lm(log(num_edge)~log(unq_assignees), df)
-summary(lmod)
+df_norm <- df %>%
+  mutate(unq_assignees = unq_assignees/num_patents) %>%
+  mutate(unq_inventors = unq_inventors/num_patents)
 
-lmod <- lm(log(edge_density)~log(unq_assignees) + log(num_edge), df)
-summary(lmod)
+ggplot(data = df) + 
+  geom_point(aes(x=num_patents,y=theoretical_max))
 
-lmod <- lm(log(edge_density) ~ log(unq_inventors), df)
-summary(lmod)
+poisson_glm <- glm(log(edge_density) ~ log(unq_assignees) + log(unq_inventors),
+                   family="poisson", data = df_norm)
+summary(poisson_glm)
 
-lmod <- lm(log(edge_density) ~ log(unq_inventors) + log(num_edge), df)
-summary(lmod)
-
-lmod <- lm(log(edge_density) ~ log(unq_inventors) + log(num_edge) + log(unq_assignees), df)
-summary(lmod)
-
-lmod <- lm(log(edge_density) ~ log(num_edge), df)
-summary(lmod)
-
-# Plot inventors and edge density
-ggplot(data=df) +
-  geom_point(aes(x=log(edge_density),y=log(unq_inventors), col=log(num_edge)), size=1) +
-  theme_light() +
-  xlab("log(Edge Density)") +
-  ylab("log(Unique Inventors)") +
-  ggtitle("Edge Density vs Unique Inventors")
-
-# Plot assignees and edge density
-ggplot(data=df) +
-  geom_point(aes(x=log(edge_density),y=log(unq_assignees), col=log(num_edge)), size=1) +
-  theme_light() +
-  xlab("log(Edge Density)") +
-  ylab("log(Unique Assignees)") +
-  ggtitle("Edge Density vs Unique Assignees")
-
-# Claims and assignees and inventors
-lmod <- lm(log(avg_claims)~log(unq_assignees), df)
-summary(lmod)
-
-lmod <- lm(log(avg_claims)~log(unq_inventors), df)
-summary(lmod)
-
-lmod <- lm(log(avg_claims)~log(unq_inventors) + log(unq_assignees), df)
-summary(lmod)
-
-lmod <- lm(log(avg_claims)~log(unq_inventors) + log(edge_density), df)
-summary(lmod)
-
-lmod <- lm(log(edge_density)~avg_sim,df)
-summary(lmod)
-
-lmod <- lm(log(edge_density)~log(avg_claims),df)
+lmod <- lm(log(edge_density) ~ log(unq_assignees) + log(unq_inventors),
+           df_norm)
 summary(lmod)

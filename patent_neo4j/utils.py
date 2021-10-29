@@ -68,5 +68,23 @@ def inventor_to_int(coinventors, write=False, file="file", mapping="mapping"):
         
     return output
 
+"""
+Takes Janson-Shannon Divergence dictionary and averages the the values
+for both main and subcategories
 
+Returns a pandas dataframe
+
+Input:
+    Janson-Shannon Divergence Dictionaey
+Output:
+    dataframe
+"""
+def js_to_pd(js):
+    data = {'gen': [1,2,3], 'nber': [0,0,0]}
+    pd_js = pd.DataFrame.from_dict(data)
     
+    for i in js:
+        for key,pair in i.items():
+            pd_js.loc[pd_js["gen"] == sum(key),'nber'] = pd_js.loc[pd_js["gen"] == sum(key),'nber'] + pair/2
+            
+    return pd_js

@@ -43,7 +43,8 @@ def citation_tree(tx, root, max_depth=3):
                     l.id AS location,
                     i.id AS inventor,
                     [rel in relationships(p) | endNode(rel).id] as lineage,
-                    [rel in relationships(p) | rel.sim] as similarity
+                    [rel in relationships(p) | rel.sim] as similarity,
+                    [rel in relationships(p) | endNode(rel).subcategory] as nber_lineage
                    """
     range_hops = '1..' + str(max_depth)
     response = tx.run(query_string % range_hops, root=root)
