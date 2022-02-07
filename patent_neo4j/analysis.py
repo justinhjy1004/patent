@@ -301,3 +301,20 @@ def geo_distance(geo):
                         lambda x: great_circle((x[0],x[1]),(x[2],x[3])).miles, axis=1)
     
     return geo
+
+'''
+For na NBER patents, assign based on majority vote of parents
+Input:
+    citation_tree
+Output:
+    citation_tree
+'''
+def fixing_na_nber(citation_tree):
+    
+    # Get NBER, similarity and lineage
+    citation_tree['nber'] = citation_tree['nber_lineage'].apply(lambda x: x[0])
+    
+    # Return Assigned NBER
+    citation_tree = pd.merge(citation_tree.drop(['nber'],axis=1),assign_missing_nber(citation_tree), on='id', how='left')
+    
+    return citation_tree

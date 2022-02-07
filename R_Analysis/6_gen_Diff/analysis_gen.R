@@ -10,7 +10,14 @@ df_lag <- df %>%
   mutate(sim_lag = lag(similarity)) %>%
   mutate(loc_lag = lag(location)) %>%
   mutate(root = factor(root)) %>%
-  mutate(id_lag = lag(id))
+  mutate(id_lag = lag(id)) %>%
+  mutate(gen = factor(gen))
+
+m <- lm(inventor ~ inv_lag*gen + root, df_lag)
+summary(m)
+
+m <- lm(log(inventor) ~ log(inv_lag) + root + gen, df_lag)
+summary(m)
 
 # Lag Inventors and Number of Patents
 m1 <- lm(log(id) ~ log(inv_lag) + root, df_lag)

@@ -88,3 +88,31 @@ def js_to_pd(js):
             pd_js.loc[pd_js["gen"] == sum(key),'nber'] = pd_js.loc[pd_js["gen"] == sum(key),'nber'] + pair/2
             
     return pd_js
+
+'''
+Given (RAW) citation_tree, keep only the "oldest" generation
+i.e. if a is gen 1 and 2, gen will be only 2
+Also, take the direct simiarity
+Input:
+    citation_tree
+Output:
+    citation_tree
+'''
+def get_max_generation(citation_tree):
+    # Obtain the generation based on lineage
+    citation_tree['gen'] = citation_tree['similarity'].apply(lambda x: len(x))
+    
+    # Dropping duplicates due to different inventors
+    generation = citation_tree.loc[:,['id','gen']].drop_duplicates()
+    
+    # Sort values based on a generation, keeping the last (the idea of the forefront of inventions)
+    generation = generation.sort_values(by=['gen']).drop_duplicates(subset=['id'], keep='last')
+    
+    # Left join with generation -> this only keeps the max(gen) for each patent
+    citation_tree = pd.merge(generation,citation_tree,on=['id','gen'], how='left')
+    
+    # Take the direct similarity of the max(gen)
+    citation_tree['similarity'] = citation_tree['similarity'].apply(lambda x: x[0])
+    
+    return citation_tree
+
