@@ -212,3 +212,111 @@ def geo_coordinate(tx,root,max_depth=3):
                                   'lineage': [None]}, ignore_index=True)
     
     return result_df
+
+# Get all patents by inventor
+def inventor_profile(tx,inventor_id):
+    inventor_id = str(inventor_id)
+    
+    query_string = """
+                    MATCH (p:Patent)-[:INVENTED_BY]->(i:Inventor)
+                    WHERE i.id = $inventor_id
+                    RETURN i.id AS inventor_id, 
+                    p.id AS patent_id,
+                    p.date AS patent_date
+                    """
+    response = tx.run(query_string, inventor_id=inventor_id)
+    df = pd.DataFrame([dict(_) for _ in response])
+    
+    return df
+
+# Get patent information by batch
+def batch_patent_info(tx, patent_list):
+    query_string = """
+                    UNWIND $patent_list AS root
+                    MATCH (c:Patent)-[:ASSIGNED_TO]->(a:Assignee)
+                    MATCH (c:Patent)-[:LOCATED_IN]->(l:Location)
+                    MATCH (c:Patent)-[:INVENTED_BY]->(i:Inventor)
+                    WHERE c.id = root
+                    RETURN c.id AS patent_id,
+                    c.country AS country,
+                    c.num_claims AS claims,
+                    c.kind AS kind, 
+                    l.county_fips AS county_fips,
+                    l.city AS city,
+                    l.state AS state,
+                    a.organization AS organization,
+                    a.type AS org_type,
+                    count(i) AS num_inventors
+                   """
+    response = tx.run(query_string, patent_list=patent_list)
+    result_df = pd.DataFrame([dict(_) for _ in response])
+    return result_df
+
+def batch_citation_count(tx,patent_list):
+    query_string = """
+                    UNWIND $patent_list AS root
+                    MATCH (p:Patent)-[:CITED]->(c:Patent)
+                    WHERE c.id = root
+                    RETURN c.id AS patent_id,
+                    count(p) AS num_citations
+                   """
+    response = tx.run(query_string, patent_list = patent_list)
+    result_df = pd.DataFrame([dict(_) for _ in response])
+    return result_df
+
+def batch_patent_assignee(tx,patent_list):
+    query_string = """
+                    UNWIND $patent_list AS root
+                    MATCH (c:Patent)-[:ASSIGNED_TO]->(a:Assignee)
+                    WHERE c.id = root
+                    RETURN c.id AS patent_id,
+                    a.id AS organization,
+                    a.organization AS name,
+                    a.type AS org_type
+                   """
+    response = tx.run(query_string, patent_list = patent_list)
+    result_df = pd.DataFrame([dict(_) for _ in response])
+    return result_df
+
+def batch_patent_location(tx,patent_list):
+    query_string = """
+                    UNWIND $patent_list AS root
+                    MATCH (c:Patent)-[:LOCATED_IN]->(l:Location)
+                    WHERE c.id = root
+                    RETURN c.id AS patent_id,
+                    l.county_fips AS county_fips,
+                    l.city AS city,
+                    l.state AS state
+                   """
+    response = tx.run(query_string, patent_list = patent_list)
+    result_df = pd.DataFrame([dict(_) for _ in response])
+    return result_df
+
+def batch_patent_inventor(tx,patent_list):
+    query_string = """
+                    UNWIND $patent_list AS root
+                    MATCH (c:Patent)-[:INVENTED_BY]->(i:Inventor)
+                    WHERE c.id = root
+                    RETURN c.id AS patent_id,
+                    i.id AS inventor_id
+                   """
+    response = tx.run(query_string, patent_list = patent_list)
+    result_df = pd.DataFrame([dict(_) for _ in response])
+    return result_df 
+
+def assignee_patents(tx, assignee_list):
+    query_string = """
+                    UNWIND $assignee_list AS assignee_id
+                    MATCH (a:Assignee)-[:ASSIGNED_TO]-(p:Patent)
+                    WHERE a.id = assignee_id
+                    WITH a, p
+                    MATCH (p:Patent)<-[:CITED]-(p1:Patent)
+                    RETURN a.id AS assignee_id,
+                    p.id AS patent_id,
+                    p.date AS patent_date,
+                    p.subcategory AS nber, 
+                    COUNT(p1) AS num_citation
+                   """
+    response = tx.run(query_string, assignee_list = assignee_list)
+    result_df = pd.DataFrame([dict(_) for _ in response])
+    return result_df 

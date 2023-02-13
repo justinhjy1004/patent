@@ -1,4 +1,5 @@
 import neo4j
+import pandas as pd
 from patent_neo4j.queries import direct_citation
 from patent_neo4j.queries import citation_tree
 from patent_neo4j.queries import patent_info
@@ -8,6 +9,8 @@ from patent_neo4j.queries import related_inventors
 from patent_neo4j.queries import inventor_tree
 from patent_neo4j.queries import nber_category
 from patent_neo4j.queries import geo_coordinate
+from patent_neo4j.queries import inventor_profile
+from patent_neo4j.queries import batch_citation_count, batch_patent_assignee, batch_patent_location, batch_patent_inventor, assignee_patents
 
 """
 Neo4j Connection for Patent Graph Data
@@ -79,3 +82,23 @@ class Neo4jConnection:
         with self.driver.session() as session:
             result = session.read_transaction(geo_coordinate, root,  max_depth)
         return result
+    
+    def query_inventor_profile(self, inventor_id, inventor_profile=inventor_profile):
+        with self.driver.session() as session:
+            result = session.read_transaction(inventor_profile, inventor_id)
+        return result
+    
+    def query_batch_patent_info(self, patent_list):
+        with self.driver.session() as session:
+            citation_count = session.read_transaction(batch_citation_count, patent_list)
+            patent_assignee = session.read_transaction(batch_patent_assignee, patent_list)
+            patent_inventor = session.read_transaction(batch_patent_inventor, patent_list)
+            patent_location = session.read_transaction(batch_patent_location, patent_list)
+        
+        return [citation_count, patent_assignee, patent_inventor, patent_location]
+    
+    def query_assignee_patents(self, assignee_list):
+        with self.driver.session() as session:
+            result = session.read_transaction(assignee_patents, assignee_list)
+        return result
+        

@@ -72,7 +72,7 @@ ggplot(data = df, aes(x=inventor_sim, y=combination, color=hops)) +
   ylab("log(Number of Pairwise Combination)") + 
   ggtitle("Inventor Similarity and # Pairwise Combination")
 
-ggplot(data = df, aes(x=similarity, y=inventor_sim, color=hops)) + 
+ggplot(data = df_rem, aes(x=similarity, y=inventor_sim, color=hops)) + 
   geom_point(size=0.1) + 
   geom_smooth(col='red') + 
   theme_minimal() +
@@ -87,3 +87,12 @@ ggplot(data = df, aes(x=combination, y=lmod_residuals, color=hops)) +
   xlab("log(# Pairwise Combination)") + 
   ylab("Residuals Inventor Patent~Inventor") + 
   ggtitle("Residuals for Patent~Inventor and Combination")
+
+df_rem <- df[df$inventor_sim != 1,]
+df_rem <- df_rem[df_rem$inventor_sim != 0,]
+df_rem <- df_rem[df_rem$similarity > 0,]
+
+df_rem$hops <- factor(df_rem$hops)
+
+lmod <- lm((similarity) ~ (inventor_sim) + hops, df_rem)
+summary(lmod)

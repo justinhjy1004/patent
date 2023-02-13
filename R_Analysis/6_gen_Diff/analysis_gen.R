@@ -128,3 +128,19 @@ summary(m4)
 
 m5 <- lm(log(id) ~ log(id_lag) + root, df_lag)
 summary(m5)
+
+# White Standard Errors
+library("lmtest")
+library("sandwich")
+
+m1 <- lm(log(id) ~ log(inventor) + log(assignee) + root, df_lag)
+coeftest(m1, vcov = vcovHC(m1, type = "HC0"))
+
+m2 <- lm(lm(log(id) ~ log(inventor) + root, df_lag))
+coeftest(m2, vcov = vcovHC(m2, type = "HC0"))
+
+m3 <- lm(lm(log(id) ~ log(assignee) + root, df_lag))
+coeftest(m3, vcov = vcovHC(m3, type = "HC0"))
+
+m4 <- lm(log(id) ~ log(inv_lag) + log(assignee_lag) + root, df_lag)
+coeftest(m4, vcov = vcovHC(m4, type = "HC0"))
